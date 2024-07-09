@@ -2,7 +2,7 @@
 name = "mltc"
 version = "0.0.1"
 description = "A simple notebook merging tool to construct (ML) Jupyter notebooks"
-repository = "https://github.com/KONRADS098/jupyter-template"
+repository = "https://github.com/KONRADS098/mltc"
 authors = ["Konrad Sokołowski"]
 license = "MIT"
 readme = "README.md"
@@ -10,6 +10,10 @@ packages = [{ include = "mltc" }]
 
 [tool.poetry.dependencies]
 python = ">=3.8"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "~=8.2.2"
+pytest-mock = "~=3.14.0"
 
 [tool.poetry.group.cli.dependencies]
 click = "~=8.1"
@@ -23,3 +27,21 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 mltc = "mltc.main:main"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+select = ["ALL"]
+ignore = ["D100"]
+exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+exclude = ["*.ipynb"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
