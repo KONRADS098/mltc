@@ -1,56 +1,42 @@
-import uuid
-from pathlib import Path
-
 import nbformat
 
 
+class NotebookValidationError(Exception):
+    """Exception raised for notebook validation errors."""
+
+    def __init__(self, message: str) -> None:
+        """Initialize the NotebookValidationError with a message."""
+        self.message = message
+        super().__init__(self.message)
+
+
 class NotebookValidator:
-    """A class for validating and modifying Jupyter notebooks.
+    """Jupyter notebook validator class.
 
-    This class provides methods to add unique IDs to cells in a notebook and validate the notebook's format.
-
-    Raises:
-        RuntimeError: If the notebook fails validation checks.
+    This class provides methods to validate Jupyter notebooks based on the Jupyter notebook format schema.
     """
 
     @staticmethod
-    def add_ids_to_cells(notebook: nbformat.NotebookNode) -> nbformat.NotebookNode:
-        """Adds a unique 'id' field to each cell in the notebook if it doesn't already have one.
+    def is_valid(notebook: nbformat.NotebookNode) -> bool:
+        """Validates the notebook's adherence to the Jupyter notebook format schema.
+
+        Returns True if the notebook is valid, False otherwise.
 
         Args:
-            notebook (NotebookNode): A notebook object loaded via nbformat.
+            notebook (nbformat.NotebookNode): The notebook object.
 
         Returns:
-            NotebookNode: The modified notebook object with 'id' fields added to each cell.
-        """
-        for cell in notebook.cells:
-            if "id" not in cell.metadata:
-                cell.metadata["id"] = str(uuid.uuid4())  # assign a new UUID as the ID
-        return notebook
-
-    @staticmethod
-    def validate_and_add_ids(path: str) -> nbformat.NotebookNode:
-        """Validates the notebook's format and ensures that each cell has a unique 'id' field.
-
-        Raises an error if the notebook cannot be validated.
-
-        Args:
-            path (str): The file path to the notebook.
-
-        Returns:
-            NotebookNode: The validated and modified notebook object with 'id' fields added to each cell.
+            bool: True if the notebook is valid, False otherwise.
 
         Raises:
-            RuntimeError: If the notebook fails validation checks.
+            NotebookValidationError: If the notebook fails validation checks.
         """
-        with Path.open(path) as f:
-            nb = nbformat.read(f, as_version=4)
-            nb = NotebookValidator.add_ids_to_cells(
-                nb,
-            )  # ensure all cells have an 'id' field
-            try:
-                nbformat.validate(nb)
-            except nbformat.ValidationError:
-                err_msg = f"The notebook {path} is incapable of merging due to validation errors."
-                raise RuntimeError(err_msg) from None
-        return nb
+        try:
+            nbformat.validate(notebook)
+        except nbformat.ValidationError as err:
+            err_msg = "The notebook does not conform to the Jupyter notebook format schema."
+            raise NotebookValidationError(err_msg) from err
+        except ValueError as err:
+            err_msg = "Invalid input: The provided object is not a valid notebook."
+            raise NotebookValidationError(err_msg) from err
+        return True

@@ -1,4 +1,30 @@
-import click
+class InvalidIndexError(Exception):
+    """Exception raised for invalid index values."""
+
+    def __init__(self, index: int) -> None:
+        """Initialize the Parser object.
+
+        Args:
+            index (int): The index value for the Parser object.
+
+        Raises:
+        ValueError: If the index is out of range. Indices must be positive integers.
+        """
+        self.index = index
+        super().__init__(f"Index {index} is out of range. Indices must be positive integers.")
+
+
+class InvalidInputError(Exception):
+    """Exception raised for invalid input values."""
+
+    def __init__(self, input_value: any) -> None:
+        """Initializes the InvalidInputError class with an input value.
+
+        Args:
+            input_value: The invalid input value that caused the exception.
+        """
+        self.input_value = input_value
+        super().__init__(f"Invalid input '{input_value}': Please enter only integers.")
 
 
 class IndexParser:
@@ -26,7 +52,8 @@ class IndexParser:
 
         This method splits the input string into individual indices, attempts to convert each to an integer,
         and adjusts them to 0-based indexing. It validates that each index is a positive integer. If any index
-        is invalid (not a positive integer), an error message is displayed, and an empty list is returned.
+        is invalid (not a positive integer), an InvalidInputError is raised. Likewise, if the index is out of range,
+        an InvalidIndexError is raised.
 
         Returns:
             list[int]: A list of valid 0-based integer indices. If any index is invalid, returns an empty list.
@@ -39,9 +66,8 @@ class IndexParser:
                 if idx >= 0:
                     valid_indices.append(idx)
                 else:
-                    click.echo(f"Index {index} is out of range. Indices must be positive integers.")
-            except ValueError:
-                click.echo(f"Invalid input '{index}': Please enter only integers.")
-                return []
+                    raise InvalidIndexError(index)
+            except ValueError as err:
+                raise InvalidInputError(index) from err
 
         return valid_indices

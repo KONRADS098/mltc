@@ -1,32 +1,13 @@
 from pathlib import Path
 
 import click
-import nbformat
 
 from mltc.merger import NotebookMerger
-from mltc.parser import IndexParser
+from mltc.parser import IndexParser, InvalidIndexError, InvalidInputError
+from mltc.reader import NotebookReader
 from mltc.selector import NotebookSelector
 from mltc.validator import NotebookValidator
-
-
-def _validate_paths(base_dir: Path, *paths: Path) -> bool:
-    """Validate multiple paths against a base directory.
-
-    Checks if each path in the provided list of paths is relative to the specified base directory.
-    If a path is not relative to the base directory, a message is printed, and the function returns False.
-
-    Args:
-        base_dir (Path): The base directory to which the paths should be relative.
-        *paths (Path): Variable number of Path objects to be validated.
-
-    Returns:
-        bool: True if all paths are relative to the base directory, False otherwise.
-    """
-    for path in paths:
-        if not path.is_relative_to(base_dir):
-            click.echo(f"{path} is outside the allowed path of {base_dir}.")
-            return False
-    return True
+from mltc.writer import NotebookWriter
 
 
 def _select_notebooks(directory: Path) -> list:
@@ -45,13 +26,20 @@ def _select_notebooks(directory: Path) -> list:
         type=str,
     )
     index_parser = IndexParser(indices)
-    selected_indices = index_parser.parse_indices()
+    try:
+        selected_indices = index_parser.parse_indices()
+    except InvalidInputError as e:
+        click.echo(f"Invalid input: {e}")
+        return []
+    except InvalidIndexError as e:
+        click.echo(f"Invalid index: {e}")
+        return []
+
     if not selected_indices:
+        click.echo("No valid indices selected.")
         return []
+
     notebooks = notebook_selector.list_notebooks()
-    if any(index < 0 or index >= len(notebooks) for index in selected_indices):
-        click.echo("Invalid indices selected.")
-        return []
     return [notebooks[idx] for idx in selected_indices]
 
 
@@ -67,31 +55,34 @@ def _merge_and_save_notebooks(selected_notebooks: list, output_path: Path) -> No
         OSError: If an error occurs while writing the merged notebook to file.
     """
     validator = NotebookValidator()
-    merger = NotebookMerger(validator)
+    reader = NotebookReader()
+    merger = NotebookMerger(reader=reader, validator=validator)
+    writer = NotebookWriter()
+
+    merged_notebook = merger.merge_notebooks(selected_notebooks)
+
     try:
         merged_notebook = merger.merge_notebooks(selected_notebooks)
-    except RuntimeError as e:
-        click.echo(e)
-        return
-    try:
-        with output_path.open("w") as f:
-            nbformat.write(merged_notebook, f)
+        writer.write_notebook(merged_notebook, output_path)
+        click.echo(f"Merged notebook saved at {output_path}")
     except OSError as e:
         click.echo(f"Error writing to file {output_path}: {e}")
-        return
-    click.echo(f"Merged notebook saved at {output_path}")
+    except Exception as e:  # noqa: BLE001
+        click.echo(f"Unexpected error during merging: {e}")
 
 
 @click.command()
-@click.argument(
-    "templates_dir",
+@click.option(
+    "--templates-dir",
     default=str(Path(__file__).resolve().parent / "templates"),
     type=click.Path(exists=True, file_okay=False, dir_okay=True, readable=True, resolve_path=True),
+    help="Directory containing Jupyter notebook templates.",
 )
-@click.argument(
-    "output_path",
+@click.option(
+    "--output-path",
     default=str(Path(__file__).resolve().parent / "mltc.ipynb"),
     type=click.Path(exists=False, writable=True, dir_okay=False, resolve_path=True),
+    help="Output path for the merged notebook.",
 )
 def main(templates_dir: click.Path, output_path: click.Path) -> None:
     """Main function to execute the notebook merging tool.
@@ -102,10 +93,6 @@ def main(templates_dir: click.Path, output_path: click.Path) -> None:
     """
     templates_dir = Path(templates_dir).resolve()
     output_path = Path(output_path).resolve()
-    script_dir = Path(__file__).resolve().parent
-
-    if not _validate_paths(script_dir, templates_dir, output_path):
-        return
 
     selected_notebooks = _select_notebooks(templates_dir)
     if not selected_notebooks:
