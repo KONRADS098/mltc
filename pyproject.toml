@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "mltc"
+version = "0.0.1"
+description = "A simple notebook merging tool to construct (ML) Jupyter notebooks"
+repository = "https://github.com/KONRADS098/jupyter-template"
+authors = ["Konrad Sokołowski"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "mltc" }]
+
+[tool.poetry.dependencies]
+python = ">=3.8"
+
+[tool.poetry.group.cli.dependencies]
+click = "~=8.1"
+
+[tool.poetry.group.jupyter.dependencies]
+nbformat = "~=5.10.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+mltc = "mltc.main:main"
