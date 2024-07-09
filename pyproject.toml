@@ -14,6 +14,7 @@ python = ">=3.8"
 [tool.poetry.group.dev.dependencies]
 pytest = "~=8.2.2"
 pytest-mock = "~=3.14.0"
+ruff = "~=0.5.1"
 
 [tool.poetry.group.cli.dependencies]
 click = "~=8.1"
@@ -31,12 +32,10 @@ mltc = "mltc.main:main"
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-select = ["ALL"]
-ignore = ["D100"]
-exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = ["ALL"]
+ignore = ["D100", "D104", "COM812", "ISC001"]
 exclude = ["*.ipynb"]
 
 [tool.ruff.lint.pydocstyle]
