@@ -36,7 +36,7 @@ class NotebookValidator:
         except nbformat.ValidationError as err:
             err_msg = "The notebook does not conform to the Jupyter notebook format schema."
             raise NotebookValidationError(err_msg) from err
-        except ValueError as err:
+        except (ValueError, AttributeError) as err:
             err_msg = "Invalid input: The provided object is not a valid notebook."
             raise NotebookValidationError(err_msg) from err
         return True

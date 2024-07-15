@@ -31,9 +31,6 @@ class NotebookReader:
         try:
             with path_obj.open() as f:
                 return nbformat.read(f, as_version=4)
-        except nbformat.reader.NotJSONError as err:
-            err_msg = f"Error reading {path}: {err}"
-            raise nbformat.reader.NotJSONError(err_msg) from err
         except OSError as err:
             err_msg = f"OS error reading {path}: {err}"
             raise OSError(err_msg) from err

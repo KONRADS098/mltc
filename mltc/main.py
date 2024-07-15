@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import click
+import nbformat
 
 from mltc.merger import NotebookMerger
 from mltc.parser import IndexParser, InvalidIndexError, InvalidInputError
@@ -43,11 +44,33 @@ def _select_notebooks(directory: Path) -> list:
     return [notebooks[idx] for idx in selected_indices]
 
 
-def _merge_and_save_notebooks(selected_notebooks: list, output_path: Path) -> None:
+def _read_notebooks(selected_notebooks: list[str]) -> list[nbformat.NotebookNode]:
+    """Read the selected notebooks and return a list of notebook objects.
+
+    Args:
+        selected_notebooks (list[str]): A list of paths to the selected notebooks.
+
+    Returns:
+        list[nbformat.NotebookNode]: A list of notebook objects.
+    """
+    reader = NotebookReader()
+    notebooks = []
+    for notebook_path in selected_notebooks:
+        try:
+            notebook = reader.read_notebook(notebook_path)
+            notebooks.append(notebook)
+        except FileNotFoundError as e:
+            click.echo(f"File not found: {e}")
+        except OSError as e:
+            click.echo(f"Unexpected error reading notebook {notebook_path}: {e}")
+    return notebooks
+
+
+def _merge_and_save_notebooks(selected_notebooks: list[nbformat.NotebookNode], output_path: Path) -> None:
     """Merge selected notebooks and save the result to a specified path.
 
     Args:
-        selected_notebooks (list): A list of notebooks to be merged.
+        selected_notebooks (list[nbformat.NotebookNode]): A list of notebooks to be merged.
         output_path (Path): The path where the merged notebook will be saved.
 
     Raises:
@@ -55,11 +78,8 @@ def _merge_and_save_notebooks(selected_notebooks: list, output_path: Path) -> No
         OSError: If an error occurs while writing the merged notebook to file.
     """
     validator = NotebookValidator()
-    reader = NotebookReader()
-    merger = NotebookMerger(reader=reader, validator=validator)
+    merger = NotebookMerger(validator=validator)
     writer = NotebookWriter()
-
-    merged_notebook = merger.merge_notebooks(selected_notebooks)
 
     try:
         merged_notebook = merger.merge_notebooks(selected_notebooks)
@@ -98,6 +118,7 @@ def main(templates_dir: click.Path, output_path: click.Path) -> None:
     if not selected_notebooks:
         return
 
+    selected_notebooks = _read_notebooks(selected_notebooks)
     _merge_and_save_notebooks(selected_notebooks, output_path)
 
 
